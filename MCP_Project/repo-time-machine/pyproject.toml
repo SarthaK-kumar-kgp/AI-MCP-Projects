@@ -1,0 +1,24 @@
+[project]
+name = "repo-time-machine"
+version = "1.0"
+description = "A MCP tool for exploring and analyzing GiT history"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp==4.1.4",
+    "mcp==2.3.0",
+    "GitPython",
+    "python-dotenv",
+    "pydantic"
+]
+
+
+[project.scripts]
+repotime-server = "repotime.server:main"
+repotime-client = "repotime.client:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "repotime"
