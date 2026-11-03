@@ -1,7 +1,6 @@
-"""MCP tools for inspecting the configured Git repository."""
+"""MCP tools for inspecting the evolution of functions in the configured Git repository."""
 
 from fastmcp import FastMCP
-
 from repotime.analysis.repository import *
 from repotime.analysis.git_diff_engine import *
 from repotime.analysis.git_engine import *
@@ -75,7 +74,7 @@ def get_file_content_tool(file_path: str, commit_sha: str) -> FileContent:
     """
     return get_file_content(get_repository_path(), file_path=file_path, commit_sha=commit_sha)
 
-def register_mcp_tools(mcp: FastMCP) -> None:
+def register_git_mcp_tools(mcp: FastMCP) -> None:
     """Register all MCP tools for inspecting the configured Git repository."""
     mcp.tool(compare_revisions_tool)
     mcp.tool(get_commit_summary_tool)

@@ -7,7 +7,9 @@ from repotime.analysis.repository import (
     get_repository_status as read_repository_status,
 )
 from repotime.config import get_repository_path
-from repotime.tools.git_tools import register_mcp_tools
+from repotime.resources.repository import register_repository_resources
+from repotime.tools.git_tools import register_git_mcp_tools
+from repotime.tools.ast_tools import register_ast_mcp_tools
 
 mcp = FastMCP(
     "RepoTime Machine",
@@ -27,7 +29,9 @@ def get_repository_status() -> RepositoryStatus:
     """Return the repository name, current branch, and clean working-tree state."""
     return read_repository_status(get_repository_path())
 
-register_mcp_tools(mcp)
+register_git_mcp_tools(mcp)
+register_ast_mcp_tools(mcp)
+register_repository_resources(mcp)
 
 def main() -> None:
     """Serve MCP requests over standard input and output."""
