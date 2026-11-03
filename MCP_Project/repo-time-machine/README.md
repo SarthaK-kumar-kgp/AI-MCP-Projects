@@ -4,7 +4,7 @@ RepoTime Machine is a read-only [Model Context Protocol (MCP)](https://modelcont
 
 ## Current status
 
-The server registers eight tools. Repository status, commit history, historical file content, and revision comparison are implemented. The stdio client discovers and calls them using SHAs and paths returned by earlier tools. Part 2 is still in progress because repository resources remain.
+Parts 2 and 3 are complete. The server registers eleven tools, one resource, and two resource templates. It supports repository history, historical file content, revision comparison, and Python function evolution. The included stdio client exercises the Git tools and resources; the three function tools have also been checked over stdio against known commits.
 
 ## Install and configure
 
@@ -17,7 +17,7 @@ export REPOSITORY_PATH=/absolute/path/to/a/git/repository
 
 `REPOSITORY_PATH` must point to an existing local Git repository. The server reads this repository; it does not check out commits or change files. You can run the stdio server with `uv run repotime-server`. It waits for an MCP client on standard input and output, so it will appear idle if run alone in a terminal.
 
-Run the included client with `uv run repotime-client`. It discovers the tools, uses commits and changed paths from the configured repository to call them, and checks expected errors. An empty repository skips history calls.
+Run the included client with `uv run repotime-client`. It discovers tools and resources, uses commits and changed paths from the configured repository to call and read them, compares historical file snapshots, and checks expected errors. An empty repository skips history calls.
 
 To check tool discovery and call a tool with arguments without configuring an external MCP host:
 
@@ -48,5 +48,20 @@ PY
 | `get_file_history_tool` | Commits that changed one path; renames are not followed. |
 | `get_file_content_tool` | UTF-8 file text at a commit, up to 1 MB. |
 | `compare_revisions_tool` | Per-file status, line counts, and bounded patch text between two revisions. |
+| `get_target_function_tool` | A Python function's source and location at one revision, or null if absent. |
+| `get_function_comparison_tool` | Change categories and an exact source diff between two function versions. |
+| `trace_function_evolution_tool` | Commits where a function changed, with a source diff for each change. |
 
 History tools accept a `limit` and `offset`. Revision arguments can be commit SHAs or refs such as `HEAD`. The diff tool limits results to 100 files and 100,000 bytes of returned patch text. See [learning.md](learning.md) for the mistakes and fixes behind the implementation.
+
+Function lookup accepts a qualified name such as `Cart.calculate`, or a short name when it is unambiguous. Evolution follows the same file path across commits, compares each commit to its first parent, and returns changes in chronological order within each bounded page. It does not follow renames or prove that a syntax change alters runtime behavior.
+
+## Resources
+
+| URI | What it returns |
+|---|---|
+| `repo://metadata` | Configured repository name, branch, and working-tree state as JSON. |
+| `repo://commit/{sha}` | Commit details as JSON, for example `repo://commit/HEAD`. |
+| `repo://file/{sha}/{path}` | UTF-8 file text at a revision, for example `repo://file/HEAD/src/shop/pricing.py`. Nested paths are supported. |
+
+The file resource has the same 1 MB limit and path validation as the file-content tool. Missing revisions, missing files, and invalid paths return errors. Use a commit SHA when you need an immutable historical snapshot; `HEAD` follows the current branch.
