@@ -32,6 +32,12 @@ I first made every wrapper call `get_repository_status`, even though each wrappe
 
 I corrected the tool docstrings because FastMCP turns them into tool descriptions and parameter guidance for MCP clients. The remaining cleanup is to replace star imports with explicit imports and annotate `offset` as `int` in `get_commit_list_tool`; its current MCP schema has a description but no integer type.
 
+## Calling the tools from my client
+
+I confused tool discovery with tool execution. `client.list_tools()` told me which tools exist and showed their input schemas, but my next loop called every tool without arguments. That worked for repository status and failed as soon as a tool required SHAs. A schema tells me the names and types of arguments; it does not supply real commit SHAs or file paths.
+
+I changed the client into a small investigation workflow. It first lists commits, uses their returned SHAs to inspect and compare commits, and takes a changed file path from the comparison to request file history and content. Each `call_tool` now receives the arguments that particular tool needs. An empty repository skips history calls, and expected invalid-revision and unknown-tool errors are checked separately. I verified this through a real stdio connection to the local test repository.
+
 ## What I need to check next
 
-I have verified tool registration locally, but I still need to call the new tools through the actual stdio client, add the Part 2 repository resources, and check their invalid-input behavior through MCP. After that, I can treat Part 2 as complete and move to Part 3. I also still need to inspect the server with MCP Inspector.
+I have verified the new tools and their error behavior through the stdio client. I still need to add the Part 2 repository resources before treating Part 2 as complete and moving to Part 3. I also still need to inspect the server with MCP Inspector.
