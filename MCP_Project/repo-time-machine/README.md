@@ -4,7 +4,7 @@ RepoTime Machine is a read-only [Model Context Protocol (MCP)](https://modelcont
 
 ## Current status
 
-The server registers eight tools. Repository status, commit history, historical file content, and revision comparison are implemented. Part 2 is still in progress: repository resources and a complete stdio client check remain. The current `repotime-client` discovers tools but then calls every tool without arguments, so it fails when it reaches a tool that requires a SHA or file path.
+The server registers eight tools. Repository status, commit history, historical file content, and revision comparison are implemented. The stdio client discovers and calls them using SHAs and paths returned by earlier tools. Part 2 is still in progress because repository resources remain.
 
 ## Install and configure
 
@@ -16,6 +16,8 @@ export REPOSITORY_PATH=/absolute/path/to/a/git/repository
 ```
 
 `REPOSITORY_PATH` must point to an existing local Git repository. The server reads this repository; it does not check out commits or change files. You can run the stdio server with `uv run repotime-server`. It waits for an MCP client on standard input and output, so it will appear idle if run alone in a terminal.
+
+Run the included client with `uv run repotime-client`. It discovers the tools, uses commits and changed paths from the configured repository to call them, and checks expected errors. An empty repository skips history calls.
 
 To check tool discovery and call a tool with arguments without configuring an external MCP host:
 
