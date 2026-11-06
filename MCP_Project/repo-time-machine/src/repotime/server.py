@@ -10,13 +10,13 @@ from repotime.config import get_repository_path
 from repotime.resources.repository import register_repository_resources
 from repotime.tools.git_tools import register_git_mcp_tools
 from repotime.tools.ast_tools import register_ast_mcp_tools
+from repotime.tools.fx_graph_tools import register_graph_mcp_tools
 
 mcp = FastMCP(
     "RepoTime Machine",
     instructions="Read basic information about the configured Git repository.",
     version="1.0",
 )
-
 
 @mcp.tool
 def get_repository_name() -> str:
@@ -32,6 +32,7 @@ def get_repository_status() -> RepositoryStatus:
 register_git_mcp_tools(mcp)
 register_ast_mcp_tools(mcp)
 register_repository_resources(mcp)
+register_graph_mcp_tools(mcp)
 
 def main() -> None:
     """Serve MCP requests over standard input and output."""

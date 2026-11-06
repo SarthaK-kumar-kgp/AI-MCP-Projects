@@ -8,7 +8,9 @@ dependencies = [
     "mcp==2.3.0",
     "GitPython",
     "python-dotenv",
-    "pydantic"
+    "pydantic",
+    "cldk>=2.1.0",
+    "networkx>=3.6.1",
 ]
 
 

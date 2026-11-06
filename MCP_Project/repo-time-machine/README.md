@@ -1,10 +1,10 @@
 # RepoTime Machine
 
-RepoTime Machine is a read-only [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for exploring a local Git repository. It uses FastMCP for the server and GitPython for repository history. The Git analysis lives in `src/repotime/analysis/`; `src/repotime/tools/` exposes it as MCP tools.
+RepoTime Machine is a read-only [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for exploring a local Git repository. It uses FastMCP for the server, GitPython for repository history, and CLDK for Python call graphs. The analysis lives in `src/repotime/analysis/`; `src/repotime/tools/` exposes it as MCP tools.
 
 ## Current status
 
-Parts 2 and 3 are complete. The server registers eleven tools, one resource, and two resource templates. It supports repository history, historical file content, revision comparison, and Python function evolution. The included stdio client exercises the Git tools and resources; the three function tools have also been checked over stdio against known commits.
+Parts 2 and 3 are complete. Part 4 adds call graph queries and remains in progress. The server registers thirteen tools, one resource, and two resource templates. It supports repository history, historical file content, revision comparison, Python function evolution, dependencies, and possible change impact. The included stdio client exercises the Git tools and resources; the function and graph tools have been checked separately through an MCP client.
 
 ## Install and configure
 
@@ -51,10 +51,14 @@ PY
 | `get_target_function_tool` | A Python function's source and location at one revision, or null if absent. |
 | `get_function_comparison_tool` | Change categories and an exact source diff between two function versions. |
 | `trace_function_evolution_tool` | Commits where a function changed, with a source diff for each change. |
+| `get_functional_dependency_tool` | Direct and indirect functions called by a project function. |
+| `get_change_impact_tool` | Direct and indirect callers that may be affected by a function change. |
 
 History tools accept a `limit` and `offset`. Revision arguments can be commit SHAs or refs such as `HEAD`. The diff tool limits results to 100 files and 100,000 bytes of returned patch text. See [learning.md](learning.md) for the mistakes and fixes behind the implementation.
 
 Function lookup accepts a qualified name such as `Cart.calculate`, or a short name when it is unambiguous. Evolution follows the same file path across commits, compares each commit to its first parent, and returns changes in chronological order within each bounded page. It does not follow renames or prove that a syntax change alters runtime behavior.
+
+Graph tools accept a function identifier from the call graph, such as `shop.report.report_total`, plus optional `depth` (1–5) and `limit` (1–100). They build the graph from the configured repository when called. Direct and indirect results come from static call edges; `external` lists calls CLDK labels outside the analyzed source tree. Dynamic or unresolved calls may be missing, so impact means possible callers, not guaranteed breakage. The bundled client does not yet call these graph tools.
 
 ## Resources
 
