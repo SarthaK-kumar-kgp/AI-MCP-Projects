@@ -1,4 +1,4 @@
-# RepoTime Machine: six-part build and learning roadmap
+# RepoTime Machine: seven-part build and learning roadmap
 
 Use this alongside [project.md](project.md). Complete each part in order. Build the project yourself; the lists below tell you what to study, what to implement, and how to check your work.
 
@@ -7,8 +7,8 @@ Use this alongside [project.md](project.md). Complete each part in order. Build 
 - **Target:** one local Git repository containing Python files, one read-only MCP server, one custom MCP client, and a CLI that can optionally use DeepSeek.
 - **Evidence rule:** a commit, diff, file snapshot, and source location are facts you can verify. A claim about *why* a developer made a change is an inference unless a commit message or other evidence supports it. Label the two clearly in outputs.
 - **Function identity:** start with `path + qualified function name` (for example, `src/auth.py::AuthService.login`). Renames and moves are hard to track reliably; document them as limitations of version one.
-- **Security from the start:** every Git or file operation must stay inside the configured repository and be read-only. Add input limits and validation as each operation is introduced; Part 6 hardens and tests the complete boundary.
-- **Version decision:** pin compatible FastMCP 4 and MCP Python SDK v2 versions. Use FastMCP for the server; the existing custom client still uses the official SDK. Check each library's documentation before coding and avoid mixing examples from different releases. Confirm DeepSeek API access before Part 5; Parts 1–4 work without it.
+- **Security from the start:** every Git or file operation must stay inside the configured repository and be read-only. Add input limits and validation as each operation is introduced; Part 7 hardens and tests the complete boundary.
+- **Version decision:** pin compatible FastMCP 4 and MCP Python SDK v2 versions. Use FastMCP for the server; the existing custom client still uses the official SDK. Check each library's documentation before coding and avoid mixing examples from different releases. Confirm DeepSeek API access before Part 6; Parts 1–5 work without it.
 - **Time check:** the brief estimates 30–40 hours over 14 days. That is ambitious for a first MCP project, especially with HTTP, caching, and a custom client. Keep each part working before expanding it.
 
 ## Part 1 — Project foundation and MCP conversation (roughly days 1–2)
@@ -91,33 +91,57 @@ Use this alongside [project.md](project.md). Complete each part in order. Build 
 
 **Likely files:** `analysis/ast_engine.py`, `tools/function_tools.py`, `tests/test_ast_engine.py`.
 
-## Part 4 — Dependency impact and MCP prompts (roughly days 6–7)
+## Part 4 — Dependency graph and impact analysis (roughly day 6)
 
-**Goal:** connect function history to a cautious estimate of affected code, then expose reusable investigation workflows.
+**Goal:** connect function history to a cautious estimate of affected code.
 
 ### Topics to learn
 
 1. Static call graphs, directed edges, callers versus callees, and NetworkX traversal.
 2. Import resolution and its limits: aliases, dynamic calls, reflection, and runtime dispatch.
 3. Direct versus transitive impact; why graph reachability means *potential* impact.
-4. MCP prompt discovery, prompt arguments, and the difference between retrieving a prompt and executing tools.
+4. Reading Python imports and call expressions with AST; recording unresolved calls instead of guessing their targets.
 
 ### Build
 
 - Build a graph for clearly resolvable calls in the current repository revision. Record unresolved calls separately.
 - Implement `get_function_dependencies` and `analyze_change_impact` with depth and result limits.
-- Add `investigate_function_change`, `explain_commit`, and `analyze_revert_impact` prompts.
-- Extend the client to list and retrieve prompts. Run one full investigation using only MCP calls.
+- Expose the two analyses as MCP tools and call them from the client against the known fixture.
 
 ### Done when
 
 - A known `A -> B -> C` fixture produces the expected callers, dependencies, and potential impact.
 - Outputs distinguish confirmed call edges from unresolved cases; they do not promise that code will break.
-- Tools, resources, resource templates, and prompts can all be exercised without DeepSeek.
+- The client can distinguish direct callers, indirect callers, and unresolved calls without DeepSeek.
 
-**Likely files:** `analysis/dependency_graph.py`, `tools/impact_tools.py`, `prompts/investigation.py`, `tests/test_mcp_tools.py`.
+**Likely files:** `analysis/dependency_graph.py`, `tools/impact_tools.py`, `tests/test_dependency_graph.py`.
 
-## Part 5 — DeepSeek agent and evidence-backed answers (roughly days 8–9)
+## Part 5 — MCP prompts and investigation workflows (roughly day 7)
+
+**Goal:** make repeatable investigation instructions available through MCP, using the Git, function, and impact tools already built.
+
+### Topics to learn
+
+1. MCP prompt discovery and retrieval: `prompts/list` and `prompts/get`.
+2. Prompt arguments and the messages a server returns to a client.
+3. How a prompt suggests a workflow while the client or model decides which tool calls to make.
+4. How to separate Git evidence, potential impact, and inferred explanations in an investigation.
+
+### Build
+
+- Add `investigate_function_change`, `explain_commit`, and `analyze_revert_impact` prompts.
+- Register them on the existing MCP server and extend the client to list and retrieve prompts with arguments.
+- Use a retrieved prompt to guide one investigation with the existing MCP tools and resources, without DeepSeek.
+
+### Done when
+
+- The client discovers all three prompts and retrieves each with valid arguments.
+- One investigation produces verifiable SHAs and paths, plus cautious impact claims, using only MCP calls.
+- You can explain that retrieving a prompt returns instructions and does not itself execute tools.
+
+**Likely files:** `prompts/investigation.py`, `server.py`, `client.py`, `tests/test_mcp_prompts.py`.
+
+## Part 6 — DeepSeek agent and evidence-backed answers (roughly days 8–9)
 
 **Goal:** turn a natural-language question into bounded MCP calls and a verifiable answer.
 
@@ -144,7 +168,7 @@ Use this alongside [project.md](project.md). Complete each part in order. Build 
 
 **Likely files:** `agent.py`, CLI entry point, `tests/test_integration.py`.
 
-## Part 6 — Second transport, reliability, and handoff (roughly days 10–14)
+## Part 7 — Second transport, reliability, and handoff (roughly days 10–14)
 
 **Goal:** make the completed application safe, testable, repeatable, and usable by another developer.
 

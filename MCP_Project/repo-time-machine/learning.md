@@ -38,6 +38,8 @@ I confused tool discovery with tool execution. `client.list_tools()` told me whi
 
 I changed the client into a small investigation workflow. It first lists commits, uses their returned SHAs to inspect and compare commits, and takes a changed file path from the comparison to request file history and content. Each `call_tool` now receives the arguments that particular tool needs. An empty repository skips history calls, and expected invalid-revision and unknown-tool errors are checked separately. I verified this through a real stdio connection to the local test repository.
 
+Later, I put discovery, Git inspection, resource comparisons, and error checks inside one long `run_client()` function. It was hard to see the order of the workflow. I split those existing steps into named functions so `run_client()` reads like a short outline. This cleanup did not add AST or graph tool calls.
+
 ## Giving Git evidence a resource URI
 
 I initially exposed historical files only through tools. That let a client ask the server to perform a lookup, but Part 2 also calls for MCP resources: data that a client can discover and read by URI. I added `repo://metadata` for the configured repository, plus templates for a commit and a file at a revision. I registered them on the same FastMCP server as the tools, because a separate instance would leave them invisible to `repotime-server`.
@@ -60,6 +62,18 @@ When I registered the AST lookup as an MCP tool, I annotated its wrapper as retu
 
 I also described the lookup tool as a two-commit comparison and said the evolution tool returned Git log order. Those docstrings were misleading because FastMCP exposes them as tool descriptions. I corrected them to describe each tool's actual result and the evolution page's chronological order, then checked the descriptions through tool discovery.
 
+## Part 4: Building and querying a call graph
+
+I first pointed CLDK at the repository root, which made `shop.pricing` appear to be outside the project: CLDK named the file `src.shop.pricing`, while the import used `shop.pricing`. I now pass the folder where Python import names begin. The graph builder picks `src` when it exists and accepts an explicit source folder for other layouts.
+
+My first script also ran CLDK as soon as the module was imported and wrote `repository_graph.json` and analyzer cache files into the repository I was inspecting. I changed it into a function that returns the graph and puts CLDK's cache in a temporary directory outside the repository. On a clean copy of the fixture, the source tree was unchanged after analysis.
+
+I added two bounded graph queries. Following arrows from `report_total` finds `checkout_total` directly and `calculate_total` indirectly; following arrows backward from `calculate_total` gives the possible impact in the opposite order. I keep CLDK's external nodes separate from functions found inside the project and limit the number of steps and results. External nodes can include known builtins, and CLDK may omit dynamic calls, so this graph remains a cautious estimate rather than a complete account of runtime behavior.
+
+I then tried to put `nx.DiGraph` in an MCP tool's input and output types. The server failed while registering the tool because FastMCP could not make a Pydantic schema for that Python graph object. I learned that an MCP client sends and receives data it can serialize, such as strings, numbers, lists, dictionaries, and Pydantic models made from those values. It cannot send the live graph object held in the server's memory. Wrapping `nx.DiGraph` in a Pydantic model would still leave the same serialization problem. The graph belongs inside the analysis code; a graph tool should receive a function name and simple options, run the graph query on the server, and return the existing `CallRelations` result.
+
+I fixed the wrappers by having each one build the graph from the configured repository inside the server, then pass that graph to the Python analysis function. I removed the unused graph created while `server.py` was importing. The MCP tool schemas now ask only for a function name, depth, and limit, and both graph queries returned the expected relationships through an MCP client. Building the graph on every call works for now, though it repeats the analysis each time.
+
 ## What I need to check next
 
-I have verified the Git tools and resources through the stdio client. Part 2's historical and error checks pass. The three Part 3 tools are registered and passed stdio checks for lookup, comparison, evolution, missing functions, and syntax errors. An MCP Inspector check from Part 1 is still pending. Part 4 adds dependency impact and MCP prompts.
+I have verified the Git tools and resources through the stdio client. Part 2's historical and error checks pass. The three Part 3 tools are registered and passed stdio checks for lookup, comparison, evolution, missing functions, and syntax errors. An MCP Inspector check from Part 1 is still pending. Part 4's two graph tools passed a separate MCP client check, but the bundled client does not call them yet and unresolved dynamic calls are not fully reported. Part 5 prompts follow Stage 4.
