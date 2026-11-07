@@ -69,3 +69,7 @@ Graph tools accept a function identifier from the call graph, such as `shop.repo
 | `repo://file/{sha}/{path}` | UTF-8 file text at a revision, for example `repo://file/HEAD/src/shop/pricing.py`. Nested paths are supported. |
 
 The file resource has the same 1 MB limit and path validation as the file-content tool. Missing revisions, missing files, and invalid paths return errors. Use a commit SHA when you need an immutable historical snapshot; `HEAD` follows the current branch.
+
+## Prompts
+
+The server offers five reusable investigation prompts: `functional_dependency_prompt`, `git_commit_prompt`, `change_comparison_prompt`, `function_evolution_prompt`, and `function_info_comparison_prompt`. A client can list and retrieve them with arguments such as a commit SHA, file path, or function name. Retrieving a prompt returns instructions; it does not run the tools named in those instructions. The bundled `repotime-client` does not yet retrieve prompts.
