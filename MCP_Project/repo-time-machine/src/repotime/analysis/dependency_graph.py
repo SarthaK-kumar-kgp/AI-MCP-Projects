@@ -1,7 +1,10 @@
 """Build a read-only Python call graph and query function relationships."""
 
+import os
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Dict
 
 import networkx as nx
 from cldk import CLDK
@@ -18,6 +21,14 @@ class CallRelations(BaseModel):
     direct: list[str]
     indirect: list[str]
     external: list[str]
+    truncated: bool
+
+
+class FunctionSearchResult(BaseModel):
+    """Matching repository function identifiers from the call graph."""
+
+    query: str
+    matches: list[str]
     truncated: bool
 
 
@@ -45,6 +56,9 @@ def build_dependency_graph(
     if not source_path.is_relative_to(repo_root) or not source_path.is_dir():
         raise ValueError("source_root must be an existing directory inside the repository")
 
+    # codeanalyzer needs a base Python to create its analysis environment.
+    os.environ.setdefault("SYSTEM_PYTHON", sys._base_executable)
+
     with TemporaryDirectory(prefix="repotime-cldk-") as cache_dir:
         analysis = CLDK.python(
             project_path=source_path,
@@ -55,6 +69,33 @@ def build_dependency_graph(
 
     graph.graph["source_root"] = str(source_path.relative_to(repo_root))
     return graph
+
+def graph_to_json(graph:nx.DiGraph) -> Dict:
+    graph_in_json = nx.node_link_data(graph)
+    return graph_in_json
+
+
+def search_graph_functions(
+    graph: nx.DiGraph, query: str, limit: int = 20
+) -> FunctionSearchResult:
+    """Find repository functions whose graph identifier contains ``query``."""
+    query = query.strip()
+    if not query:
+        raise ValueError("query must not be empty")
+    if not 1 <= limit <= 100:
+        raise ValueError("limit must be between 1 and 100")
+
+    matches = sorted(
+        node for node in graph
+        if isinstance(node, str)
+        and "/@external/" not in node
+        and query.casefold() in node.casefold()
+    )
+    return FunctionSearchResult(
+        query=query, matches=matches[:limit], truncated=len(matches) > limit
+    )
+
+
 
 
 def _relations(
